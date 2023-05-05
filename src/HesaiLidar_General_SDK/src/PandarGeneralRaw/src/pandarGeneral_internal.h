@@ -35,6 +35,7 @@
 #include <hesai_lidar/msg/pandar_scan.hpp>
 #include <hesai_lidar/msg/pandar_packet.hpp>
 #include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
 // #include <geometry_msgs/TransformStamped.h>
 #include <Eigen/Dense>
 
@@ -153,6 +154,10 @@ HS_LIDAR_L64_7_BLOCK_PACKET_BODY_SIZE + HS_LIDAR_L64_PACKET_TAIL_WITHOUT_UDPSEQ_
 #define HS_LIDAR_QT_COORDINATE_CORRECTION_S0 (0.00000017)
 #define HS_LIDAR_QT_COORDINATE_CORRECTION_D0 (20)
 #define COORDINATE_CORRECTION_CHECK (false)
+
+using std::placeholders::_1;
+using std::placeholders::_2;
+using std::placeholders::_3;
 
 struct Pandar40PUnit_s {
   uint8_t intensity;

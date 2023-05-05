@@ -15,6 +15,10 @@
 #include "std_msgs/msg/string.hpp"
 // #define PRINT_FLAG 
 
+using std::placeholders::_1;
+using std::placeholders::_2;
+using std::placeholders::_3;
+
 using namespace std;
 namespace hesai_lidar
 {
@@ -39,8 +43,9 @@ public:
     this->declare_parameter<bool>("coordinate_correction_flag", false);
     this->declare_parameter<std::string>("target_frame", "");
     this->declare_parameter<std::string>("fixed_frame", "");
-    rclcpp::QoS qos(rclcpp::KeepLast(7));
-    lidarPublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pandar");
+    rclcpp::QoS qos(rclcpp::KeepLast(7)); 
+    auto sensor_qos = rclcpp::QoS(rclcpp::SensorDataQoS());
+    lidarPublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pandar", sensor_qos);
     packetPublisher = this->create_publisher<hesai_lidar::msg::PandarScan>("pandar_packets", qos);
     this->timer_callback();
   }
@@ -51,7 +56,9 @@ private:
   void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp, hesai_lidar::msg::PandarScan::SharedPtr scan) // the timestamp from first point cloud of cld
   {
     if(m_sPublishType == "both" || m_sPublishType == "points"){
-      pcl_conversions::toPCL(rclcpp::Time(timestamp), cld->header.stamp);
+      rclcpp::Time now = this->now();
+        uint64_t nanoseconds = timestamp * 1e9;
+        pcl_conversions::toPCL(rclcpp::Time(nanoseconds), cld->header.stamp);
       sensor_msgs::msg::PointCloud2 output;
       pcl::toROSMsg(*cld, output);
       lidarPublisher->publish(output);
@@ -116,7 +123,7 @@ private:
     this->get_parameter("background_b", targetFrame);
   
     if(!pcapFile.empty()){
-      hsdk = new PandarGeneralSDK(pcapFile, boost::bind(&HesaiLidarClient::lidarCallback, this, _1, _2, _3), \
+      hsdk = new PandarGeneralSDK(pcapFile, std::bind(&HesaiLidarClient::lidarCallback, this, _1, _2, _3), \
       static_cast<int>(startAngle * 100 + 0.5), 0, pclDataType, lidarType, frameId, m_sTimestampType, lidarCorrectionFile, \
       coordinateCorrectionFlag, targetFrame, fixedFrame);
       if (hsdk != NULL) {
@@ -145,7 +152,7 @@ private:
       }
     }
     else if ("rosbag" == dataType){
-      hsdk = new PandarGeneralSDK("", boost::bind(&HesaiLidarClient::lidarCallback, this, _1, _2, _3), \
+      hsdk = new PandarGeneralSDK("", std::bind(&HesaiLidarClient::lidarCallback, this, _1, _2, _3), \
       static_cast<int>(startAngle * 100 + 0.5), 0, pclDataType, lidarType, frameId, m_sTimestampType, \
       lidarCorrectionFile, coordinateCorrectionFlag, targetFrame, fixedFrame);
       if (hsdk != NULL) {
@@ -154,8 +161,8 @@ private:
     }
     else {
       hsdk = new PandarGeneralSDK(serverIp, lidarRecvPort, gpsPort, \
-        boost::bind(&HesaiLidarClient::lidarCallback, this, _1, _2, _3), \
-        boost::bind(&HesaiLidarClient::gpsCallback, this, _1), static_cast<int>(startAngle * 100 + 0.5), 0, pclDataType, lidarType, frameId,\
+        std::bind(&HesaiLidarClient::lidarCallback, this, _1, _2, _3), \
+        std::bind(&HesaiLidarClient::gpsCallback, this, _1), static_cast<int>(startAngle * 100 + 0.5), 0, pclDataType, lidarType, frameId,\
          m_sTimestampType, lidarCorrectionFile, multicastIp, coordinateCorrectionFlag, targetFrame, fixedFrame);
     }
     
